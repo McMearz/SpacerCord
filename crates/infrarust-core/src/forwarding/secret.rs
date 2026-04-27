@@ -1,5 +1,6 @@
 //! Forwarding secret file management.
 
+#[cfg(unix)]
 use std::io::Write;
 use std::path::Path;
 

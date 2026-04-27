@@ -82,7 +82,7 @@ fn default_db_name() -> String {
 }
 
 fn default_binary() -> PathBuf {
-    PathBuf::from("spacetimedb")
+    PathBuf::from("spacetime")
 }
 
 fn default_data_dir() -> PathBuf {

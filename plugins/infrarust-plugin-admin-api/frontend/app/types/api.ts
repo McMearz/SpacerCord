@@ -190,3 +190,26 @@ export interface ProviderDto {
   provider_type: string;
   configs_count: number;
 }
+
+// ── SpacetimeDB ──
+
+export interface StdbStatusDto {
+  enabled: boolean;
+  server_state: string;
+  connection_state: string;
+  uri: string;
+  listen: string;
+  db_name: string;
+  binary_resolved: string | null;
+  pid: number | null;
+  started_at: string | null;
+  last_error: string | null;
+  module_published: boolean;
+}
+
+export interface StdbRowEventDto {
+  timestamp: string;
+  table_name: string;
+  operation: 'insert' | 'update' | 'delete';
+  data_len: number;
+}

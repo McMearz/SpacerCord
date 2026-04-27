@@ -1,6 +1,13 @@
 # Minimal Infrarust proxy configuration for smoke testing
 servers_dir = "./examples/servers"
 
+# Bundled SpacetimeDB integration. Defaults connect to a local SpacetimeDB
+# running on http://0.0.0.0:3000 with the `spacer-cord` module published.
+[spacetimedb]
+enabled = true
+uri = "http://127.0.0.1:3000"
+db_name = "spacer-cord"
+
 # Web admin API / UI (uncomment to enable)
 # [web]
 # enable_api = true

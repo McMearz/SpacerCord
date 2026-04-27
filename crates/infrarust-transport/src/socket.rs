@@ -78,7 +78,7 @@ pub fn configure_stream_socket(
         .set_nodelay(true)
         .map_err(TransportError::SocketConfig)?;
 
-    let mut ka = TcpKeepalive::new()
+    let ka = TcpKeepalive::new()
         .with_time(keepalive.time)
         .with_interval(keepalive.interval);
 

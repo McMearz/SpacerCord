@@ -5,6 +5,7 @@ import {
   ShieldExclamationIcon,
   ServerStackIcon,
   PuzzlePieceIcon,
+  CircleStackIcon,
   DocumentTextIcon,
   Cog6ToothIcon,
   ArrowRightStartOnRectangleIcon,
@@ -25,6 +26,7 @@ const navItems = [
   { to: '/bans', label: 'Bans', icon: ShieldExclamationIcon },
   { to: '/servers', label: 'Servers', icon: ServerStackIcon },
   { to: '/plugins', label: 'Plugins', icon: PuzzlePieceIcon },
+  { to: '/spacetimedb', label: 'SpacetimeDB', icon: CircleStackIcon },
   { to: '/logs', label: 'Logs', icon: DocumentTextIcon },
   { to: '/config', label: 'Config', icon: Cog6ToothIcon },
 ];

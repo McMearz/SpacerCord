@@ -10,6 +10,7 @@ mod permissions;
 mod proxy_mode;
 mod rate_limit;
 mod server_manager;
+mod spacetimedb;
 mod status;
 mod telemetry;
 mod web;
@@ -26,6 +27,7 @@ pub use rate_limit::RateLimitConfig;
 pub use server_manager::{
     CraftyManagerConfig, LocalManagerConfig, PterodactylManagerConfig, ServerManagerConfig,
 };
+pub use spacetimedb::SpacetimeConfig;
 pub use status::{MotdConfig, MotdEntry, StatusCacheConfig};
 pub use telemetry::{MetricsConfig, ResourceConfig, TelemetryConfig, TracesConfig};
 pub use web::WebConfig;
