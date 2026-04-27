@@ -6,17 +6,13 @@
 #![allow(unused, clippy::all)]
 use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
-pub mod adjust_balance_reducer;
 pub mod ensure_player_profile_reducer;
 pub mod player_profile_table;
 pub mod player_profile_type;
-pub mod set_balance_reducer;
 
-pub use adjust_balance_reducer::adjust_balance;
 pub use ensure_player_profile_reducer::ensure_player_profile;
 pub use player_profile_table::*;
 pub use player_profile_type::PlayerProfile;
-pub use set_balance_reducer::set_balance;
 
 #[derive(Clone, PartialEq, Debug)]
 
@@ -26,9 +22,7 @@ pub use set_balance_reducer::set_balance;
 /// to indicate which reducer caused the event.
 
 pub enum Reducer {
-    AdjustBalance { uuid: String, amount: i64 },
     EnsurePlayerProfile { uuid: String, username: String },
-    SetBalance { uuid: String, new_balance: i64 },
 }
 
 impl __sdk::InModule for Reducer {
@@ -38,31 +32,17 @@ impl __sdk::InModule for Reducer {
 impl __sdk::Reducer for Reducer {
     fn reducer_name(&self) -> &'static str {
         match self {
-            Reducer::AdjustBalance { .. } => "adjust_balance",
             Reducer::EnsurePlayerProfile { .. } => "ensure_player_profile",
-            Reducer::SetBalance { .. } => "set_balance",
             _ => unreachable!(),
         }
     }
     #[allow(clippy::clone_on_copy)]
     fn args_bsatn(&self) -> Result<Vec<u8>, __sats::bsatn::EncodeError> {
         match self {
-            Reducer::AdjustBalance { uuid, amount } => {
-                __sats::bsatn::to_vec(&adjust_balance_reducer::AdjustBalanceArgs {
-                    uuid: uuid.clone(),
-                    amount: amount.clone(),
-                })
-            }
             Reducer::EnsurePlayerProfile { uuid, username } => {
                 __sats::bsatn::to_vec(&ensure_player_profile_reducer::EnsurePlayerProfileArgs {
                     uuid: uuid.clone(),
                     username: username.clone(),
-                })
-            }
-            Reducer::SetBalance { uuid, new_balance } => {
-                __sats::bsatn::to_vec(&set_balance_reducer::SetBalanceArgs {
-                    uuid: uuid.clone(),
-                    new_balance: new_balance.clone(),
                 })
             }
             _ => unreachable!(),

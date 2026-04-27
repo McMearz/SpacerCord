@@ -1,100 +1,131 @@
 <div align="center">
-  <img width="200" height="auto" src="docs/v2/public/images/logo.svg" alt="Infrarust Logo">
+  <img width="400" height="auto" src="docs/v2/public/images/SPACERCORD.png" alt="SpacerCord Logo">
 
   <h1>SpacerCord</h1>
 
-  <p>High-performance Minecraft reverse proxy with SpacetimeDB integration. A specialized fork of <a href="https://github.com/Shadowner/Infrarust">Infrarust</a> designed for persistent game state and advanced networking.</p>
-  <a href="https://ko-fi.com/C1C41WOEBB">
-    <img height='26' alt="Ko-fi" src="https://storage.ko-fi.com/cdn/kofi6.png?v=6" />
-  <br /><br />
-  </a>
+  <p>High-performance Minecraft reverse proxy with integrated <b>SpacetimeDB</b> persistence.</p>
+
   <img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square" />
   <a href="https://discord.gg/sqbJhZVSgG">
     <img alt="Discord" src="https://img.shields.io/discord/1330603066478825502?style=flat-square&label=discord" />
   </a>
-
 </div>
 
 <br />
 
-<p align="center">
-  <img src="docs/v2/public/web-ui.png" alt="SpacerCord web dashboard" width="800" />
-</p>
+## Infrarust Fork
 
-> [!WARNING]
-> SpacerCord is currently in active development. Expect bugs with intercepted modes (client_only / offline).
+SpacerCord is a specialized fork of [Infrarust](https://github.com/Shadowner/Infrarust). It inherits all the high-performance routing, zero-copy networking, and plugin architecture of the original project.
 
-## Features
+For standard proxy setup, routing configuration, Docker labels, and general usage, please refer to the **[Infrarust Documentation](https://infrarust.dev/v2/)**.
 
-| | |
-|---|---|
-| **SpacetimeDB** | **Built-in database SDK** for persisting game state, player data, and cross-server logic directly in the proxy. |
-| **Routing** | Domain and subdomain-based routing with wildcard support. One port, many servers. |
-| **Proxy modes** | `passthrough`, `zerocopy`, `client_only`, `offline`, `server_only` - from raw TCP relay to full Mojang auth interception. |
-| **Web dashboard** | Built-in admin panel with REST API, real-time event streaming (SSE), and log viewer. |
-| **Docker** | Auto-discover Minecraft containers via labels - no config files needed for Docker-managed servers. |
-| **Plugins** | 3-tier event-driven plugin system. Intercept packets or host virtual mini-games entirely inside the proxy. |
-| **Security** | Rate limiting, IP filtering, ban system (IP / UUID / username). |
-| **Observability** | OpenTelemetry export for metrics, traces, and logs. |
-| **Hot reload** | Drop a `.toml` file in `servers/` and the proxy picks it up. No restart. |
+---
+
+## SpacerCord Features
+
+While maintaining 100% compatibility with Infrarust, SpacerCord introduces deep integration with **SpacetimeDB** to enable advanced persistence and cross-server logic directly within the proxy layer.
+
+### 🚀 SpacetimeDB Persistence
+- **Built-in Database SDK:** Persist player data, session history, and game state without managing external database instances.
+- **Relational Logic:** Use SpacetimeDB's relational model to query proxy state, manage bans, or track player movement across your network.
+- **Async Driver:** A dedicated background driver manages all database interactions, ensuring SpacetimeDB operations never block the networking hot path.
+
+### 🛠️ Enhanced API
+- **SpacetimeDB Event Hooks:** New event hooks allow plugins to automatically sync data to the database on specific proxy events (e.g., `PostLoginEvent`, `ServerSwitchEvent`).
+- **Internal State Mirroring:** Proxy-wide state is mirrored into SpacetimeDB tables for easy external querying via CLI or Web API.
 
 ## SpacetimeDB Integration
 
-SpacerCord bundles the **SpacetimeDB SDK**, allowing you to persist player data, world state, and proxy-wide events directly within the proxy's runtime.
+SpacerCord bundles a customized SpacetimeDB SDK designed for the high-throughput requirements of a Minecraft proxy.
 
-- **Persistent State:** Store player logins, play time, and cross-server data without external databases.
-- **Async Driver:** High-performance MPSC bridge ensures SpacetimeDB operations never block the networking hot path.
-- **Relational Logic:** Use SpacetimeDB's relational model to query and manipulate proxy state with ease.
+- **Persistent State:** Store player logins, play time, and cross-server data with transactional integrity.
+- **Fire-and-Forget Reducers:** Call database logic via an MPSC bridge; the proxy continues processing packets while the database task completes.
+- **Unified Schema:** Manage your proxy configuration and persistent game state in a single, cohesive environment.
+
+### 📚 Documentation & Resources
+- **[Official SpacetimeDB Docs](https://docs.spacetimedb.com)**
+- **[Rust SDK Guide](https://docs.spacetimedb.com/getting-started/rust)**
+- **[SpacerCord Discord](https://discord.gg/sqbJhZVSgG)**
+
+### ⚙️ Setup Guide
+
+#### Managed Setup (Recommended)
+SpacerCord can automatically manage the SpacetimeDB process for you. Add this to your `infrarust.toml`:
+
+```toml
+[spacetimedb]
+enabled = true
+uri = "http://127.0.0.1:3000"
+listen = "127.0.0.1:3000"
+db_name = "spacer-cord"
+auto_install = true
+module_path = "./stdb-module"
+```
+
+#### Manual Setup
+If you prefer to run SpacetimeDB independently (e.g., in a separate Docker container):
+1. Install the CLI: `curl -L https://install.spacetimedb.com | sh`
+2. Start the server: `spacetime start`
+3. Update `infrarust.toml` to point to your instance (`enabled = true`, `auto_install = false`).
+
+### 📦 Module Development
+
+The proxy logic resides in the `stdb-module/` directory. This is a standard SpacetimeDB module written in Rust.
+
+1. **Define Schema:** Add `#[table]` structs in `stdb-module/src/lib.rs`.
+2. **Define Logic:** Create `#[reducer]` functions to handle data.
+3. **Publish:** If using `auto_install`, SpacerCord publishes the module on startup. Manually: `spacetime publish -s http://localhost:3000 <module_name>`.
+
+### 🔌 Plugin Development
+
+Plugins interact with SpacetimeDB through the `SpacetimeService` provided in the plugin context.
+
+#### Calling a Reducer
+```rust
+fn on_login(&self, ctx: &PluginContext, event: &PostLoginEvent) {
+    let stdb = ctx.spacetimedb();
+    // Fire-and-forget: returns immediately, executed on driver thread
+    stdb.ensure_player_profile(event.player.uuid().to_string(), event.player.username().to_string());
+}
+```
+
+#### Subscribing to Changes
+```rust
+fn on_enable(&self, ctx: &PluginContext) {
+    // Subscribe to all changes in the "player_profile" table
+    ctx.spacetimedb().subscribe("SELECT * FROM player_profile");
+}
+
+// React to the event
+fn on_stdb_row(&self, ctx: &PluginContext, event: &SpacetimeRowEvent) {
+    if event.table_name == "player_profile" {
+        info!("Player profile updated: {:?}", event.operation);
+    }
+}
+```
 
 ## Quick Start
 
-### Install
+### Build from Source
+Ensure you have Rust 1.94+ installed.
 
 ```bash
-# From source (Rust 1.94+)
-git clone https://github.com/Shadowner/SpacerCord.git && cd SpacerCord
+git clone https://github.com/Shadowner/SpacerCord.git
+cd SpacerCord
 cargo build --release -p infrarust
-```
-
-### Configure
-
-`infrarust.toml`:
-
-```toml
-bind = "0.0.0.0:25565"
-servers_dir = "./servers"
-
-[web]
-```
-
-`servers/survival.toml`:
-
-```toml
-domains = ["survival.example.com"]
-addresses = ["127.0.0.1:25566"]
 ```
 
 ### Run
 
 ```bash
-./target/release/infrarust
+./target/release/infrarust --config infrarust.toml
 ```
 
-The web dashboard is at `http://localhost:8080`. Your API key is in `plugins/admin_api/config.toml`.
+## Contributing & License
 
-## Documentation
+Contributions to the SpacerCord integration are welcome. For core proxy changes, we recommend contributing directly to [Infrarust](https://github.com/Shadowner/Infrarust).
 
-Full documentation at **[docs.spacercord.com](https://docs.spacercord.com)** (Coming Soon).
-
-## Contributing
-
-Contributions welcome - see [CONTRIBUTING.md](CONTRIBUTING.md) for setup and guidelines.
-
-Questions or ideas? Join the [Discord](https://discord.gg/sqbJhZVSgG) or open an issue.
-
-## License
-
-AGPL-3.0 with plugin exceptions - see [LICENSE](LICENSE).
+Licensed under **AGPL-3.0** with plugin exceptions. See [LICENSE](LICENSE) for details.
 
 <p align="center">
   <img height="60" src="docs/v1/public/img/agplv3_logo.svg" alt="AGPL v3" />

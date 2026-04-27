@@ -9,7 +9,6 @@ use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 pub struct PlayerProfile {
     pub uuid: String,
     pub username: String,
-    pub balance: i64,
 }
 
 impl __sdk::InModule for PlayerProfile {
@@ -22,7 +21,6 @@ impl __sdk::InModule for PlayerProfile {
 pub struct PlayerProfileCols {
     pub uuid: __sdk::__query_builder::Col<PlayerProfile, String>,
     pub username: __sdk::__query_builder::Col<PlayerProfile, String>,
-    pub balance: __sdk::__query_builder::Col<PlayerProfile, i64>,
 }
 
 impl __sdk::__query_builder::HasCols for PlayerProfile {
@@ -31,7 +29,6 @@ impl __sdk::__query_builder::HasCols for PlayerProfile {
         PlayerProfileCols {
             uuid: __sdk::__query_builder::Col::new(table_name, "uuid"),
             username: __sdk::__query_builder::Col::new(table_name, "username"),
-            balance: __sdk::__query_builder::Col::new(table_name, "balance"),
         }
     }
 }

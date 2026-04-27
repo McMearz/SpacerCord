@@ -13,10 +13,15 @@ pub async fn spa_handler(uri: Uri) -> Response {
         return (StatusCode::NOT_FOUND, "Not Found").into_response();
     }
 
-    if !path.is_empty()
-        && let Some(file) = FrontendAssets::get(path)
-    {
-        return serve_file(path, &file.data);
+    if !path.is_empty() {
+        if let Some(file) = FrontendAssets::get(path) {
+            return serve_file(path, &file.data);
+        }
+        
+        // If it looks like a static asset but wasn't found, log it
+        if path.contains('.') || path.starts_with("_nuxt/") {
+            tracing::debug!(path, "static asset not found in embedded bundle");
+        }
     }
 
     serve_index()

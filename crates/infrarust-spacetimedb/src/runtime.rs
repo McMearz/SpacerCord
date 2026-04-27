@@ -310,16 +310,16 @@ impl SpacetimeRuntime {
             } = notif;
 
             let op = match operation {
-                    NotificationOp::Insert => RowOp::Insert,
-                    NotificationOp::Update => RowOp::Update,
-                    NotificationOp::Delete => RowOp::Delete,
-                };
-                let _ = runtime.events.send(RowEvent {
-                    timestamp: Utc::now(),
-                    table_name: table_name.clone(),
-                    operation: op,
-                    data_len: data.len(),
-                });
+                NotificationOp::Insert => RowOp::Insert,
+                NotificationOp::Update => RowOp::Update,
+                NotificationOp::Delete => RowOp::Delete,
+            };
+            let _ = runtime.events.send(RowEvent {
+                timestamp: Utc::now(),
+                table_name: table_name.clone(),
+                operation: op,
+                data_len: data.len(),
+            });
             external(notif);
         })
     }
@@ -604,16 +604,17 @@ impl SpacetimeRuntime {
                     ref data,
                 } = notif;
 
-                let op = match operation {                        NotificationOp::Insert => RowOp::Insert,
-                        NotificationOp::Update => RowOp::Update,
-                        NotificationOp::Delete => RowOp::Delete,
-                    };
-                    let _ = runtime.events.send(RowEvent {
-                        timestamp: Utc::now(),
-                        table_name: table_name.clone(),
-                        operation: op,
-                        data_len: data.len(),
-                    });
+                let op = match operation {
+                    NotificationOp::Insert => RowOp::Insert,
+                    NotificationOp::Update => RowOp::Update,
+                    NotificationOp::Delete => RowOp::Delete,
+                };
+                let _ = runtime.events.send(RowEvent {
+                    timestamp: Utc::now(),
+                    table_name: table_name.clone(),
+                    operation: op,
+                    data_len: data.len(),
+                });
             });
 
         match SpacetimeHandle::connect(&self.cfg.uri, &self.cfg.db_name, cb) {

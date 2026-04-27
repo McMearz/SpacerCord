@@ -1776,9 +1776,12 @@ dependencies = [
 name = "infrarust-api"
 version = "2.0.0-alpha.6"
 dependencies = [
+ "anyhow",
  "bytes",
  "serde",
+ "serde_json",
  "thiserror 2.0.18",
+ "tokio",
  "tokio-util",
  "tracing",
  "uuid",
@@ -1849,8 +1852,10 @@ dependencies = [
  "axum",
  "http-body-util",
  "infrarust-api",
+ "infrarust-spacetimedb",
  "infrarust_protocol",
  "mime_guess",
+ "reqwest",
  "rust-embed",
  "serde",
  "serde_json",
@@ -1917,7 +1922,14 @@ name = "infrarust-spacetimedb"
 version = "2.0.0-alpha.6"
 dependencies = [
  "anyhow",
+ "chrono",
+ "infrarust-api",
+ "infrarust_config",
+ "reqwest",
+ "serde",
+ "serde_json",
  "spacetimedb-sdk",
+ "tokio",
  "tracing",
 ]
 
