@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:infrarust.dev)",
+      "WebFetch(domain:github.com)",
+      "Bash(cargo check *)",
+      "Bash(cargo build *)",
+      "Bash(rustup show *)",
+      "Bash(rustup toolchain *)",
+      "Bash(rustc --version)",
+      "Bash(where link.exe)",
+      "Bash(dir \"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\" /b /s)",
+      "Bash(findstr /i \"link\\\\.exe$\")",
+      "PowerShell(Test-Path *)",
+      "Bash(spacetime --version)",
+      "Bash(spacetime server *)",
+      "Bash(rm -f /d/Minecraft/SpacerCord/stdb-module/lib.rs)",
+      "Bash(rm -rf /d/Minecraft/SpacerCord/stdb-module/spacer-cord)",
+      "Bash(spacetime build *)",
+      "Bash(spacetime generate *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:3000)",
+      "Bash(spacetime publish *)"
+    ]
+  }
+}
