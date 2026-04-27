@@ -8,6 +8,7 @@ members = [
     "crates/infrarust_server_manager",
     "crates/infrarust-transport",
     "crates/infrarust",
+    "crates/infrarust-spacetimedb",
     "plugins/infrarust-plugin-auth",
     "plugins/infrarust-plugin-hello",
     "plugins/infrarust-plugin-server-wake",
@@ -125,6 +126,7 @@ infrarust_config = { path = "crates/infrarust_config", version = "2.0.0-alpha.4"
 infrarust-transport = { path = "crates/infrarust-transport", version = "2.0.0-alpha.4" }
 infrarust-core = { path = "crates/infrarust-core", version = "2.0.0-alpha.4" }
 infrarust_server_manager = { path = "crates/infrarust_server_manager", version = "2.0.0-alpha.4" }
+infrarust-spacetimedb = { path = "crates/infrarust-spacetimedb", version = "2.0.0-alpha.4" }
 
 # Internal plugins
 infrarust-plugin-auth = { path = "plugins/infrarust-plugin-auth", version = "2.0.0-alpha.4" }

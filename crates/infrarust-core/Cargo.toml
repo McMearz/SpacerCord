@@ -9,7 +9,8 @@ description = "Core library for Infrarust, a Minecraft proxy server written in R
 workspace = true
 
 [features]
-default = []
+default = ["spacetimedb"]
+spacetimedb = ["dep:infrarust-spacetimedb"]
 docker = ["dep:bollard", "dep:futures-util"]
 telemetry = [
     "dep:opentelemetry",
@@ -24,6 +25,7 @@ infrarust_config = { workspace = true }
 infrarust_protocol = { workspace = true }
 infrarust-transport = { workspace = true }
 infrarust_server_manager = { workspace = true }
+infrarust-spacetimedb = { workspace = true, optional = true }
 
 tokio = { workspace = true }
 tokio-util = { workspace = true }

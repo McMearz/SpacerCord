@@ -12,6 +12,7 @@ pub mod connection;
 pub mod lifecycle;
 pub mod packet;
 pub mod proxy;
+pub mod spacetimedb;
 
 pub use chat::{ChatMessageEvent, ChatMessageResult};
 pub use connection::{
@@ -25,3 +26,4 @@ pub use proxy::{
     ConfigReloadEvent, PingResponse, ProxyInitializeEvent, ProxyPingEvent, ProxyShutdownEvent,
     ServerStateChangeEvent,
 };
+pub use spacetimedb::{RowOperation, SpacetimeRowEvent};

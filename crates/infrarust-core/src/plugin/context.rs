@@ -16,7 +16,7 @@ use infrarust_api::services::proxy_info::ProxyInfo;
 use infrarust_api::services::scheduler::{Scheduler, TaskHandle};
 use infrarust_api::services::{
     ban_service::BanService, config_service::ConfigService, player_registry::PlayerRegistry,
-    plugin_registry::PluginRegistry, server_manager::ServerManager,
+    plugin_registry::PluginRegistry, server_manager::ServerManager, spacetimedb::SpacetimeService,
 };
 
 use crate::filter::codec_registry::CodecFilterRegistryImpl;
@@ -39,6 +39,7 @@ pub struct PluginContextImpl {
     ban_service: Arc<dyn BanService>,
     config_service: Arc<dyn ConfigService>,
     plugin_registry: Arc<dyn PluginRegistry>,
+    spacetimedb: Arc<dyn SpacetimeService>,
     command_manager: Arc<TrackingCommandManager>,
     scheduler: Arc<TrackingScheduler>,
     limbo_handlers: Mutex<Vec<Box<dyn LimboHandler>>>,
@@ -69,6 +70,7 @@ impl PluginContextImpl {
         ban_service: Arc<dyn BanService>,
         config_service: Arc<dyn ConfigService>,
         plugin_registry: Arc<dyn PluginRegistry>,
+        spacetimedb: Arc<dyn SpacetimeService>,
         command_manager: Arc<dyn CommandManager>,
         scheduler: Arc<dyn Scheduler>,
         codec_filter_registry: Arc<CodecFilterRegistryImpl>,
@@ -103,6 +105,7 @@ impl PluginContextImpl {
             ban_service,
             config_service,
             plugin_registry,
+            spacetimedb,
             command_manager: tracking_cmd,
             scheduler: tracking_sched,
             limbo_handlers: Mutex::new(Vec::new()),
@@ -253,6 +256,14 @@ impl PluginContext for PluginContextImpl {
 
     fn plugin_registry_handle(&self) -> Arc<dyn PluginRegistry> {
         Arc::clone(&self.plugin_registry)
+    }
+
+    fn spacetimedb(&self) -> &dyn SpacetimeService {
+        self.spacetimedb.as_ref()
+    }
+
+    fn spacetimedb_handle(&self) -> Arc<dyn SpacetimeService> {
+        Arc::clone(&self.spacetimedb)
     }
 
     fn register_config_provider(&self, provider: Box<dyn PluginConfigProvider>) {

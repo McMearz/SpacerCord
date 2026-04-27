@@ -6,5 +6,6 @@ pub mod config_service;
 pub mod proxy;
 pub mod scheduler;
 pub mod server_manager_bridge;
+pub mod spacetimedb;
 
 pub use proxy::ProxyServices;

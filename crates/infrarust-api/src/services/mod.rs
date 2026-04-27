@@ -10,6 +10,7 @@ pub mod plugin_registry;
 pub mod proxy_info;
 pub mod scheduler;
 pub mod server_manager;
+pub mod spacetimedb;
 
 pub use ban_service::{BanEntry, BanService, BanTarget};
 pub use config_service::{ConfigService, ProxyMode, ServerConfig};
@@ -18,3 +19,4 @@ pub use plugin_registry::{PluginDependencyInfo, PluginInfo, PluginRegistry};
 pub use proxy_info::ProxyInfo;
 pub use scheduler::{Scheduler, TaskHandle};
 pub use server_manager::{ServerManager, ServerState};
+pub use spacetimedb::SpacetimeService;

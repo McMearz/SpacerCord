@@ -14,6 +14,9 @@ use tokio_util::sync::CancellationToken;
 use tracing_subscriber::EnvFilter;
 
 use infrarust_api::events::proxy::{ProxyInitializeEvent, ProxyShutdownEvent};
+use infrarust_api::events::lifecycle::PostLoginEvent;
+use infrarust_api::event::EventPriority;
+use infrarust_api::event::bus::EventBusExt;
 use infrarust_config::ProxyConfig;
 use infrarust_core::plugin::manager::{PluginManager, PluginServices};
 use infrarust_core::server::ProxyServer;
@@ -301,6 +304,24 @@ async fn run(config: ProxyConfig) -> anyhow::Result<()> {
     let mut plugin_manager = PluginManager::new(loaders);
 
     let services = server.services();
+
+    // SpacerCord core feature: ensure player profile in SpacetimeDB on login.
+    // 
+    // This hook ensures that every player who successfully authenticates with the 
+    // proxy has a record in the database before they even reach a backend server.
+    // By using LAST priority, we ensure this happens after any other login 
+    // processing is complete.
+    {
+        let stdb = Arc::clone(&services.spacetimedb);
+        let bus = Arc::clone(&services.event_bus) as Arc<dyn infrarust_api::event::bus::EventBus>;
+        bus.subscribe::<PostLoginEvent, _>(EventPriority::LAST, move |event| {
+            // Asynchronous fire-and-forget call to the database driver.
+            stdb.ensure_player_profile(
+                event.profile.uuid.to_string(),
+                event.profile.username.clone(),
+            );
+        });
+    }
 
     plugin_manager
         .discover_all(&plugins_dir)

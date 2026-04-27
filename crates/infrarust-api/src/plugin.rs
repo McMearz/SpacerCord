@@ -18,7 +18,7 @@ use crate::limbo::LimboHandler;
 use crate::services::{
     ban_service::BanService, config_service::ConfigService, player_registry::PlayerRegistry,
     plugin_registry::PluginRegistry, proxy_info::ProxyInfo, scheduler::Scheduler,
-    server_manager::ServerManager,
+    server_manager::ServerManager, spacetimedb::SpacetimeService,
 };
 
 /// Metadata describing a plugin.
@@ -193,6 +193,10 @@ pub trait PluginContext: Send + Sync + private::Sealed {
     fn plugin_registry(&self) -> &dyn PluginRegistry;
 
     fn plugin_registry_handle(&self) -> Arc<dyn PluginRegistry>;
+
+    fn spacetimedb(&self) -> &dyn SpacetimeService;
+
+    fn spacetimedb_handle(&self) -> Arc<dyn SpacetimeService>;
 
     fn register_config_provider(&self, provider: Box<dyn crate::provider::PluginConfigProvider>);
 

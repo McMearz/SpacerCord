@@ -20,6 +20,7 @@ use crate::provider::ProviderEvent;
 use crate::registry::ConnectionRegistry;
 use crate::routing::DomainRouter;
 use crate::services::command_manager::CommandManagerImpl;
+use infrarust_api::services::spacetimedb::SpacetimeService;
 
 /// Shared services passed to connection handlers.
 ///
@@ -58,6 +59,8 @@ pub struct ProxyServices {
     pub forwarding_mode: Arc<ForwardingMode>,
     pub forwarding_secret: Option<Arc<[u8]>>,
     pub permission_service: Arc<PermissionService>,
+    /// SpacetimeDB service for player data persistence.
+    pub spacetimedb: Arc<dyn SpacetimeService>,
 }
 
 impl ProxyServices {

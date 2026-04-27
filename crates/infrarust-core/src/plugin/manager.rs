@@ -11,7 +11,7 @@ use infrarust_api::plugin::{Plugin, PluginContext, PluginMetadata};
 use infrarust_api::services::{
     ban_service::BanService, config_service::ConfigService, player_registry::PlayerRegistry,
     plugin_registry::PluginRegistry, proxy_info::ProxyInfo, scheduler::Scheduler,
-    server_manager::ServerManager,
+    server_manager::ServerManager, spacetimedb::SpacetimeService,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -37,6 +37,7 @@ pub struct PluginServices {
     pub codec_filter_registry: Arc<CodecFilterRegistryImpl>,
     pub transport_filter_registry: Arc<TransportFilterRegistryImpl>,
     pub domain_router: Arc<crate::routing::DomainRouter>,
+    pub spacetimedb: Arc<dyn SpacetimeService>,
     pub proxy_shutdown: CancellationToken,
     pub proxy_info: ProxyInfo,
     pub plugins_dir: PathBuf,
