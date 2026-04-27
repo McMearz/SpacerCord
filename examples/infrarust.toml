@@ -16,7 +16,8 @@ module_path = "./stdb-module"
 enable_api = true
 enable_webui = true
 bind = "127.0.0.1:8080"
-api_key = "admin"
+# Use this key to log in to the dashboard
+api_key = "spacer-cord-secure-admin-key-2026"
 cors_origins = []
 
 [web.rate_limit]
