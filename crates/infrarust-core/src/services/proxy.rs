@@ -61,6 +61,9 @@ pub struct ProxyServices {
     pub permission_service: Arc<PermissionService>,
     /// SpacetimeDB service for player data persistence.
     pub spacetimedb: Arc<dyn SpacetimeService>,
+    /// Managed SpacetimeDB runtime for lifecycle and admin access.
+    #[cfg(feature = "spacetimedb")]
+    pub spacetimedb_runtime: Option<Arc<infrarust_spacetimedb::SpacetimeRuntime>>,
 }
 
 impl ProxyServices {

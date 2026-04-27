@@ -40,6 +40,7 @@ pub struct PluginContextImpl {
     config_service: Arc<dyn ConfigService>,
     plugin_registry: Arc<dyn PluginRegistry>,
     spacetimedb: Arc<dyn SpacetimeService>,
+    spacetimedb_runtime: Option<Arc<infrarust_spacetimedb::SpacetimeRuntime>>,
     command_manager: Arc<TrackingCommandManager>,
     scheduler: Arc<TrackingScheduler>,
     limbo_handlers: Mutex<Vec<Box<dyn LimboHandler>>>,
@@ -71,6 +72,7 @@ impl PluginContextImpl {
         config_service: Arc<dyn ConfigService>,
         plugin_registry: Arc<dyn PluginRegistry>,
         spacetimedb: Arc<dyn SpacetimeService>,
+        spacetimedb_runtime: Option<Arc<infrarust_spacetimedb::SpacetimeRuntime>>,
         command_manager: Arc<dyn CommandManager>,
         scheduler: Arc<dyn Scheduler>,
         codec_filter_registry: Arc<CodecFilterRegistryImpl>,
@@ -106,6 +108,7 @@ impl PluginContextImpl {
             config_service,
             plugin_registry,
             spacetimedb,
+            spacetimedb_runtime,
             command_manager: tracking_cmd,
             scheduler: tracking_sched,
             limbo_handlers: Mutex::new(Vec::new()),
@@ -264,6 +267,10 @@ impl PluginContext for PluginContextImpl {
 
     fn spacetimedb_handle(&self) -> Arc<dyn SpacetimeService> {
         Arc::clone(&self.spacetimedb)
+    }
+
+    fn spacetimedb_runtime(&self) -> Option<Arc<dyn infrarust_api::services::spacetimedb::ManagedSpacetimeRuntime>> {
+        self.spacetimedb_runtime.as_ref().map(|r| Arc::clone(r) as Arc<dyn infrarust_api::services::spacetimedb::ManagedSpacetimeRuntime>)
     }
 
     fn register_config_provider(&self, provider: Box<dyn PluginConfigProvider>) {

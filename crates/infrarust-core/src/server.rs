@@ -219,46 +219,45 @@ impl ProxyServer {
         // Initialize SpacetimeDB service.
         // This bridge connects the proxy's async EventBus to SpacetimeDB's 
         // real-time table update stream.
-        let spacetimedb: Arc<dyn infrarust_api::services::spacetimedb::SpacetimeService> = {
-            #[cfg(feature = "spacetimedb")]
-            {
+        #[cfg(feature = "spacetimedb")]
+        let spacetimedb_runtime = {
+            let runtime = infrarust_spacetimedb::SpacetimeRuntime::new(config.spacetimedb.clone());
+            if config.spacetimedb.enabled {
                 let bus = Arc::clone(&event_bus);
-
-                // Define the bridge callback: this is executed by the stdb-driver OS thread
-                // whenever a database event occurs. It maps internal notifications to
-                // global proxy events and dispatches them into the Tokio reactor.
-                let notify_callback = Box::new(move |notif: infrarust_spacetimedb::SpacetimeNotification| {
+                // The bridge callback that forwards row updates into the proxy event bus.
+                let bridge = Arc::new(move |notif: infrarust_spacetimedb::SpacetimeNotification| {
                     use infrarust_api::events::spacetimedb::{RowOperation, SpacetimeRowEvent};
                     use infrarust_spacetimedb::{NotificationOp, SpacetimeNotification};
 
-                    if let SpacetimeNotification::RowUpdate { table_name, operation, data } = notif {
-                        let op = match operation {
-                            NotificationOp::Insert => RowOperation::Insert,
-                            NotificationOp::Update => RowOperation::Update,
-                            NotificationOp::Delete => RowOperation::Delete,
-                        };
-
-                        // Fire the event on the global bus. Plugins listening for 
-                        // `SpacetimeRowEvent` will receive this on a Tokio worker thread.
-                        bus.fire_and_forget(SpacetimeRowEvent {
-                            table_name,
-                            operation: op,
-                            row_data: data,
-                        });
-                    }
+                    let SpacetimeNotification::RowUpdate { table_name, operation, data } = notif;
+                    let op = match operation {
+                        NotificationOp::Insert => RowOperation::Insert,
+                        NotificationOp::Update => RowOperation::Update,
+                        NotificationOp::Delete => RowOperation::Delete,
+                    };
+                    bus.fire_and_forget_arc(SpacetimeRowEvent {
+                        table_name,
+                        operation: op,
+                        row_data: data,
+                    });
                 });
 
-                // Establish the connection. For now, we use a default local URI.
-                // TODO: Move these to infrarust.toml configuration.
-                match infrarust_spacetimedb::SpacetimeHandle::connect("http://127.0.0.1:3000", "hyperlink", notify_callback) {
-                    Ok(handle) => {
-                        tracing::info!("SpacetimeDB integration active");
-                        Arc::new(crate::services::spacetimedb::SpacetimeServiceImpl::new(handle))
-                    },
-                    Err(e) => {
-                        tracing::warn!(error = %e, "failed to connect to SpacetimeDB, using no-op service");
-                        Arc::new(crate::services::spacetimedb::NoopSpacetimeService)
-                    }
+                let runtime_clone = Arc::clone(&runtime);
+                tokio::spawn(async move {
+                    runtime_clone.set_external_notify(bridge).await;
+                    runtime_clone.start().await;
+                });
+            }
+            runtime
+        };
+
+        let spacetimedb: Arc<dyn infrarust_api::services::spacetimedb::SpacetimeService> = {
+            #[cfg(feature = "spacetimedb")]
+            {
+                if config.spacetimedb.enabled {
+                    Arc::new(crate::services::spacetimedb::SpacetimeServiceImpl::new(Arc::clone(&spacetimedb_runtime)))
+                } else {
+                    Arc::new(crate::services::spacetimedb::NoopSpacetimeService)
                 }
             }
             #[cfg(not(feature = "spacetimedb"))]
@@ -286,6 +285,8 @@ impl ProxyServer {
             forwarding_secret,
             permission_service,
             spacetimedb,
+            #[cfg(feature = "spacetimedb")]
+            spacetimedb_runtime: Some(spacetimedb_runtime),
         };
 
         // Build common pipeline: IpFilter → BanIpCheck → HandshakeParser → RateLimiter → DomainRouter

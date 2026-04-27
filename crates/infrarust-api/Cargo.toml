@@ -12,9 +12,12 @@ categories = ["game-development", "network-programming"]
 workspace = true
 
 [dependencies]
+anyhow = { workspace = true }
 bytes = { workspace = true }
 serde = { workspace = true, optional = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
 tokio-util = { workspace = true, features = ["rt"] }
 tracing = { workspace = true }
 uuid = { workspace = true }

@@ -4,6 +4,8 @@
 //! It allows plugins to persist data and react to database changes
 //! without depending on the SpacetimeDB SDK directly.
 
+use std::sync::Arc;
+
 /// Service for interacting with SpacetimeDB.
 ///
 /// This service is provided to plugins via the [`PluginContext`](crate::plugin::PluginContext).
@@ -41,4 +43,27 @@ pub trait SpacetimeService: Send + Sync {
     /// This allows plugins to react to database state changes initiated by
     /// other plugins, web dashboards, or external tools.
     fn subscribe(&self, query: &str);
+}
+
+/// Managed SpacetimeDB runtime for lifecycle control and admin access.
+///
+/// This trait provides access to the underlying server process and SDK connection.
+pub trait ManagedSpacetimeRuntime: Send + Sync {
+    /// Restarts the SpacetimeDB child process and reconnects the SDK.
+    fn restart(self: Arc<Self>) -> crate::event::BoxFuture<'static, anyhow::Result<()>>;
+
+    /// Triggers a manual publish of the module.
+    fn publish_now(self: Arc<Self>) -> crate::event::BoxFuture<'static, anyhow::Result<()>>;
+
+    /// Returns the current status of the runtime.
+    ///
+    /// The return value is an opaque JSON object to avoid coupling
+    /// the API crate to the full runtime state machine.
+    fn status_json(&self) -> crate::event::BoxFuture<'_, serde_json::Value>;
+
+    /// Returns a stream of log entries from the child process.
+    fn subscribe_logs(&self) -> tokio::sync::broadcast::Receiver<serde_json::Value>;
+
+    /// Returns a stream of row-change events.
+    fn subscribe_events(&self) -> tokio::sync::broadcast::Receiver<serde_json::Value>;
 }

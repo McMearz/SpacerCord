@@ -6,37 +6,59 @@
 use infrarust_api::services::spacetimedb::SpacetimeService;
 
 #[cfg(feature = "spacetimedb")]
-use infrarust_spacetimedb::SpacetimeHandle;
+use std::sync::Arc;
+
+#[cfg(feature = "spacetimedb")]
+use infrarust_spacetimedb::SpacetimeRuntime;
 
 /// Concrete implementation of [`SpacetimeService`].
 ///
-/// This implementation wraps the thread-safe [`SpacetimeHandle`] from the
-/// `infrarust-spacetimedb` crate.
+/// This implementation wraps the managed [`SpacetimeRuntime`] which owns the
+/// lifecycle of the SpacetimeDB child process and its SDK connection.
 #[cfg(feature = "spacetimedb")]
 pub struct SpacetimeServiceImpl {
-    handle: SpacetimeHandle,
+    runtime: Arc<SpacetimeRuntime>,
 }
 
 #[cfg(feature = "spacetimedb")]
 impl SpacetimeServiceImpl {
-    /// Creates a new service instance from a driver handle.
-    pub fn new(handle: SpacetimeHandle) -> Self {
-        Self { handle }
+    /// Creates a new service instance from a runtime handle.
+    pub fn new(runtime: Arc<SpacetimeRuntime>) -> Self {
+        Self { runtime }
     }
 }
 
 #[cfg(feature = "spacetimedb")]
 impl SpacetimeService for SpacetimeServiceImpl {
     fn ensure_player_profile(&self, uuid: String, username: String) {
-        self.handle.ensure_player_profile(uuid, username);
+        // Since we are fire-and-forget, if the handle is currently None (e.g. restarting)
+        // we just drop the call. The runtime will log that the connection is down.
+        let runtime = Arc::clone(&self.runtime);
+        tokio::spawn(async move {
+            if let Some(handle) = runtime.handle().await {
+                handle.ensure_player_profile(uuid, username);
+            }
+        });
     }
 
     fn call_reducer(&self, reducer_name: &str, args: Vec<u8>) {
-        self.handle.call_reducer(reducer_name.to_string(), args);
+        let runtime = Arc::clone(&self.runtime);
+        let reducer_name = reducer_name.to_string();
+        tokio::spawn(async move {
+            if let Some(handle) = runtime.handle().await {
+                handle.call_reducer(reducer_name, args);
+            }
+        });
     }
 
     fn subscribe(&self, query: &str) {
-        self.handle.subscribe(query.to_string());
+        let runtime = Arc::clone(&self.runtime);
+        let query = query.to_string();
+        tokio::spawn(async move {
+            if let Some(handle) = runtime.handle().await {
+                handle.subscribe(query);
+            }
+        });
     }
 }
 

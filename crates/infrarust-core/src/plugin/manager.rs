@@ -38,6 +38,8 @@ pub struct PluginServices {
     pub transport_filter_registry: Arc<TransportFilterRegistryImpl>,
     pub domain_router: Arc<crate::routing::DomainRouter>,
     pub spacetimedb: Arc<dyn SpacetimeService>,
+    #[cfg(feature = "spacetimedb")]
+    pub spacetimedb_runtime: Option<Arc<infrarust_spacetimedb::SpacetimeRuntime>>,
     pub proxy_shutdown: CancellationToken,
     pub proxy_info: ProxyInfo,
     pub plugins_dir: PathBuf,

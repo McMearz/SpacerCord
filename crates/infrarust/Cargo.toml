@@ -14,8 +14,9 @@ name = "infrarust"
 path = "src/main.rs"
 
 [features]
-default = ["default-plugins"]
+default = ["default-plugins", "spacetimedb"]
 telemetry = ["infrarust-core/telemetry", "dep:opentelemetry", "dep:tracing-opentelemetry"]
+spacetimedb = ["infrarust-core/spacetimedb"]
 default-plugins = ["plugin-auth", "plugin-server-wake"]
 plugin-auth = ["dep:infrarust-plugin-auth"]
 plugin-hello = ["dep:infrarust-plugin-hello"]

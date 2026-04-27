@@ -364,6 +364,9 @@ async fn run(config: ProxyConfig) -> anyhow::Result<()> {
         codec_filter_registry: Arc::clone(&services.codec_filter_registry),
         transport_filter_registry: Arc::clone(&transport_filter_registry),
         domain_router: Arc::clone(&services.domain_router),
+        spacetimedb: Arc::clone(&services.spacetimedb),
+        #[cfg(feature = "spacetimedb")]
+        spacetimedb_runtime: services.spacetimedb_runtime.clone(),
         proxy_shutdown: shutdown.clone(),
         proxy_info,
         plugins_dir,

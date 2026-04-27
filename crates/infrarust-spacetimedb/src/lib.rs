@@ -1,42 +1,32 @@
-//! SpacetimeDB Engine for SpacerCord.
+//! SpacetimeDB engine for SpacerCord.
 //!
-//! This crate manages the low-level connection to SpacetimeDB and provides
-//! a high-performance, async-safe bridge to the rest of the proxy.
-//!
-//! # Architecture
-//!
-//! To prevent database latency from blocking the Minecraft protocol (which
-//! is extremely sensitive to jitter), this crate runs a dedicated **OS thread**
-//! (`stdb-driver`).
-//!
-//! 1. **Outbound**: The proxy and plugins send messages to the driver via a
-//!    bounded MPSC channel. The driver thread processes these sequentially.
-//! 2. **Inbound**: The driver thread listens to the SpacetimeDB SDK's event
-//!    stream and executes a callback that dispatches events back into the
-//!    Tokio-based global EventBus.
+//! Owns the connection to SpacetimeDB on a dedicated OS thread and bridges
+//! it to the Tokio-based proxy via a bounded MPSC channel. The driver thread
+//! both runs the SDK's WebSocket loop (`run_threaded`) and serialises all
+//! outgoing reducer calls so back-pressure flows back to callers when the
+//! database is slow.
 
+pub mod log_ring;
 pub mod module_bindings;
+pub mod runtime;
+
+pub use log_ring::{LogSource, StdbLogBroadcast, StdbLogEntry};
+pub use runtime::{ConnectionState, RowEvent, RowOp, RuntimeStatus, ServerState, SpacetimeRuntime};
 
 use module_bindings::{
     DbConnection,
     ensure_player_profile_reducer::ensure_player_profile as EnsurePlayerProfileExt,
 };
+use spacetimedb_sdk::DbContext;
 use std::sync::mpsc;
-use std::sync::Arc;
 
-/// Internal message types processed by the `stdb-driver` thread.
 enum DriverMsg {
-    /// Specialized call for ensuring a player exists.
     EnsurePlayerProfile { uuid: String, username: String },
-    /// Generic call for any reducer defined in the DB module.
     CallReducer { name: String, args: Vec<u8> },
-    /// SQL-based subscription for real-time table updates.
     Subscribe { query: String },
 }
 
-/// Generic notification sent from the driver thread back to the proxy core.
 pub enum SpacetimeNotification {
-    /// A row in a subscribed table has changed.
     RowUpdate {
         table_name: String,
         operation: NotificationOp,
@@ -44,37 +34,23 @@ pub enum SpacetimeNotification {
     },
 }
 
-/// Simplified operation types for row events.
 pub enum NotificationOp {
     Insert,
     Update,
     Delete,
 }
 
-/// Thread-safe handle for interacting with SpacetimeDB.
-///
-/// This is the concrete implementation that powers the `SpacetimeService` API.
-/// It can be cloned freely as it only contains a channel sender.
 #[derive(Clone)]
 pub struct SpacetimeHandle {
     tx: mpsc::SyncSender<DriverMsg>,
 }
 
 impl SpacetimeHandle {
-    /// Establishes a connection to SpacetimeDB and spawns the driver thread.
-    ///
-    /// # Arguments
-    /// * `uri` - The WebSocket URI of the SpacetimeDB host (e.g. `http://localhost:3000`).
-    /// * `db_name` - The name of the database module to join.
-    /// * `notify_callback` - A closure called by the driver thread when database events occur.
     pub fn connect(
-        uri: &str, 
+        uri: &str,
         db_name: &str,
         notify_callback: Box<dyn Fn(SpacetimeNotification) + Send + Sync>,
     ) -> anyhow::Result<Self> {
-        // Bounded channel provides back-pressure: if the driver thread falls
-        // behind, callers will block or receive an error rather than
-        // exhausting proxy memory.
         let (tx, rx) = mpsc::sync_channel::<DriverMsg>(1024);
 
         let uri = uri.to_string();
@@ -87,57 +63,41 @@ impl SpacetimeHandle {
         Ok(Self { tx })
     }
 
-    /// Queues an `ensure_player_profile` call.
     pub fn ensure_player_profile(&self, uuid: String, username: String) {
-        let _ = self.tx.try_send(DriverMsg::EnsurePlayerProfile { uuid, username });
+        let _ = self
+            .tx
+            .try_send(DriverMsg::EnsurePlayerProfile { uuid, username });
     }
 
-    /// Queues a generic reducer call.
     pub fn call_reducer(&self, name: String, args: Vec<u8>) {
         let _ = self.tx.try_send(DriverMsg::CallReducer { name, args });
     }
 
-    /// Queues a SQL subscription request.
     pub fn subscribe(&self, query: String) {
         let _ = self.tx.try_send(DriverMsg::Subscribe { query });
     }
 }
 
-/// The main loop for the database driver thread.
 fn driver_main(
-    uri: String, 
-    db_name: String, 
+    uri: String,
+    db_name: String,
     rx: mpsc::Receiver<DriverMsg>,
-    notify: Box<dyn Fn(SpacetimeNotification) + Send + Sync>,
+    _notify: Box<dyn Fn(SpacetimeNotification) + Send + Sync>,
 ) {
-    let notify_arc = Arc::new(notify);
-
-    // Initialize the SDK connection.
     let conn = match DbConnection::builder()
         .with_uri(&uri)
         .with_database_name(&db_name)
         .on_connect(|_ctx, identity, _token| {
             tracing::info!(identity = %identity, "connected to SpacetimeDB");
         })
-        .on_event({
-            let notify = Arc::clone(&notify_arc);
-            move |_ctx, event| {
-                // Map low-level SDK transaction events to our generic Notification type.
-                if let spacetimedb_sdk::Event::Transaction(tx) = event {
-                    for row_event in &tx.row_events {
-                        let op = match row_event.op {
-                            spacetimedb_sdk::RowOp::Insert => NotificationOp::Insert,
-                            spacetimedb_sdk::RowOp::Update { .. } => NotificationOp::Update,
-                            spacetimedb_sdk::RowOp::Delete => NotificationOp::Delete,
-                        };
-
-                        notify(SpacetimeNotification::RowUpdate {
-                            table_name: row_event.table_name.clone(),
-                            operation: op,
-                            data: row_event.row_data.clone(),
-                        });
-                    }
-                }
+        .on_connect_error(|_ctx, err| {
+            tracing::error!(error = %err, "SpacetimeDB connection error");
+        })
+        .on_disconnect(|_ctx, err| {
+            if let Some(err) = err {
+                tracing::warn!(error = %err, "SpacetimeDB disconnected");
+            } else {
+                tracing::info!("SpacetimeDB disconnected cleanly");
             }
         })
         .build()
@@ -149,20 +109,35 @@ fn driver_main(
         }
     };
 
-    // Run the SDK's internal background thread for WebSocket maintenance.
     let _sdk_thread = conn.run_threaded();
 
-    // Process outgoing messages from the proxy core.
     while let Ok(msg) = rx.recv() {
         match msg {
             DriverMsg::EnsurePlayerProfile { uuid, username } => {
-                let _ = EnsurePlayerProfileExt::ensure_player_profile(&conn.reducers, uuid, username);
+                if let Err(e) =
+                    EnsurePlayerProfileExt::ensure_player_profile(&conn.reducers, uuid, username)
+                {
+                    tracing::warn!(error = %e, "failed to invoke ensure_player_profile reducer");
+                }
             }
             DriverMsg::CallReducer { name, args } => {
-                let _ = conn.invoke_reducer(&name, args);
+                tracing::warn!(
+                    reducer = %name,
+                    arg_bytes = args.len(),
+                    "dynamic reducer dispatch not supported in bundled build; \
+                     extend module_bindings or call typed reducers directly"
+                );
             }
             DriverMsg::Subscribe { query } => {
-                let _ = conn.subscribe(&[&query]);
+                let _ = conn
+                    .subscription_builder()
+                    .on_applied(|_ctx| {
+                        tracing::debug!("SpacetimeDB subscription applied");
+                    })
+                    .on_error(|_ctx, err| {
+                        tracing::warn!(error = %err, "SpacetimeDB subscription error");
+                    })
+                    .subscribe(query);
             }
         }
     }

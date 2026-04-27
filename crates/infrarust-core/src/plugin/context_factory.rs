@@ -49,6 +49,10 @@ impl PluginContextFactory for PluginContextFactoryImpl {
             Arc::clone(&self.services.config_service),
             Arc::clone(&self.services.plugin_registry),
             Arc::clone(&self.services.spacetimedb),
+            #[cfg(feature = "spacetimedb")]
+            self.services.spacetimedb_runtime.clone(),
+            #[cfg(not(feature = "spacetimedb"))]
+            None,
             Arc::clone(&self.services.command_manager),
             Arc::clone(&self.services.scheduler),
             Arc::clone(&self.services.codec_filter_registry),

@@ -10,3 +10,10 @@ workspace = true
 spacetimedb-sdk = "2.1.0"
 tracing = { workspace = true }
 anyhow = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+reqwest = { workspace = true }
+infrarust_config = { path = "../infrarust_config" }
+infrarust-api = { path = "../infrarust-api" }

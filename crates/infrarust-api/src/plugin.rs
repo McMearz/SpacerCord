@@ -198,6 +198,8 @@ pub trait PluginContext: Send + Sync + private::Sealed {
 
     fn spacetimedb_handle(&self) -> Arc<dyn SpacetimeService>;
 
+    fn spacetimedb_runtime(&self) -> Option<Arc<dyn crate::services::spacetimedb::ManagedSpacetimeRuntime>>;
+
     fn register_config_provider(&self, provider: Box<dyn crate::provider::PluginConfigProvider>);
 
     fn plugin_id(&self) -> &str;
