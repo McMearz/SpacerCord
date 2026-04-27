@@ -14,7 +14,7 @@ use crate::response::{ApiResponse, ok};
 use crate::state::ApiState;
 
 use super::auth::verify_sse_auth;
-use super::types::{EventStreamFilter, LogHistoryFilter, LogStreamFilter};
+use super::types::{EventStreamFilter, LogHistoryFilter, LogStreamFilter, TokenFilter};
 
 /// SSE endpoint for real-time proxy events.
 ///
@@ -68,6 +68,78 @@ pub async fn event_stream(
             .interval(Duration::from_secs(15))
             .text("keep-alive"),
     ))
+}
+
+use axum::response::{IntoResponse, Response};
+
+/// SSE endpoint for SpacetimeDB child process logs.
+pub async fn spacetimedb_log_stream(
+    State(state): State<Arc<ApiState>>,
+    Query(filter): Query<TokenFilter>,
+) -> Result<Response, ApiError> {
+    verify_sse_auth(&state, &filter.token)?;
+
+    #[cfg(feature = "spacetimedb")]
+    if let Some(ref runtime) = state.spacetimedb_runtime {
+        let mut receiver = runtime.subscribe_logs();
+
+        let stream = async_stream::stream! {
+            loop {
+                match receiver.recv().await {
+                    Ok(json) => {
+                        yield Ok::<Event, Infallible>(Event::default()
+                            .event("stdb-log")
+                            .data(json.to_string()));
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                }
+            }
+        };
+
+        return Ok(Sse::new(stream).keep_alive(
+            KeepAlive::new()
+                .interval(Duration::from_secs(15))
+                .text("keep-alive"),
+        ).into_response());
+    }
+
+    Err(ApiError::ServiceUnavailable("SpacetimeDB not enabled".into()))
+}
+
+/// SSE endpoint for SpacetimeDB row-change events.
+pub async fn spacetimedb_event_stream(
+    State(state): State<Arc<ApiState>>,
+    Query(filter): Query<TokenFilter>,
+) -> Result<Response, ApiError> {
+    verify_sse_auth(&state, &filter.token)?;
+
+    #[cfg(feature = "spacetimedb")]
+    if let Some(ref runtime) = state.spacetimedb_runtime {
+        let mut receiver = runtime.subscribe_events();
+
+        let stream = async_stream::stream! {
+            loop {
+                match receiver.recv().await {
+                    Ok(json) => {
+                        yield Ok::<Event, Infallible>(Event::default()
+                            .event("stdb-event")
+                            .data(json.to_string()));
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                }
+            }
+        };
+
+        return Ok(Sse::new(stream).keep_alive(
+            KeepAlive::new()
+                .interval(Duration::from_secs(15))
+                .text("keep-alive"),
+        ).into_response());
+    }
+
+    Err(ApiError::ServiceUnavailable("SpacetimeDB not enabled".into()))
 }
 
 /// SSE endpoint for real-time log streaming.

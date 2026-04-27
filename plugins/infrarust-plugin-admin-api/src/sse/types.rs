@@ -38,3 +38,9 @@ pub struct LogHistoryFilter {
     /// Target prefix filter.
     pub target: Option<String>,
 }
+
+/// Basic token filter for SpacetimeDB SSE streams.
+#[derive(Debug, Deserialize)]
+pub struct TokenFilter {
+    pub token: Option<String>,
+}

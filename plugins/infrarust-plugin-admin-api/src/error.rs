@@ -25,6 +25,9 @@ pub enum ApiError {
 
     #[error("Internal error: {0}")]
     Internal(String),
+
+    #[error("Not implemented: {0}")]
+    NotImplemented(String),
 }
 
 #[derive(Serialize)]
@@ -50,6 +53,7 @@ impl IntoResponse for ApiError {
                 (StatusCode::SERVICE_UNAVAILABLE, "SERVICE_UNAVAILABLE")
             }
             ApiError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL_ERROR"),
+            ApiError::NotImplemented(_) => (StatusCode::NOT_IMPLEMENTED, "NOT_IMPLEMENTED"),
         };
 
         let body = ApiErrorBody {

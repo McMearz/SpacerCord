@@ -136,6 +136,8 @@ impl Plugin for AdminApiPlugin {
                 health_cache: Arc::new(HealthCache::new()),
                 health_checker: Arc::new(HealthChecker::new()),
                 recent_events: Arc::new(Mutex::new(std::collections::VecDeque::new())),
+                #[cfg(feature = "spacetimedb")]
+                spacetimedb_runtime: ctx.spacetimedb_runtime(),
             });
 
             // Wire up EventBridge: proxy EventBus → broadcast::Sender<ApiEvent>

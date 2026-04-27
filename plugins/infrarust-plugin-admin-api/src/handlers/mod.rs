@@ -6,4 +6,5 @@ pub mod players;
 pub mod plugins;
 pub mod proxy;
 pub mod servers;
+pub mod spacetimedb;
 pub mod stats;

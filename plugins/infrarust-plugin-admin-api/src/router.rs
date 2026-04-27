@@ -107,6 +107,14 @@ pub fn build_router(state: Arc<ApiState>, enable_webui: bool) -> Router {
         )
         .route("/api/v1/proxy/shutdown", post(handlers::proxy::shutdown))
         .route("/api/v1/proxy/gc", post(handlers::proxy::gc))
+        // ── SpacetimeDB endpoints ──
+        .route("/api/v1/spacetimedb/status", get(handlers::spacetimedb::get_status))
+        .route("/api/v1/spacetimedb/restart", post(handlers::spacetimedb::restart))
+        .route("/api/v1/spacetimedb/publish", post(handlers::spacetimedb::publish))
+        .route("/api/v1/spacetimedb/schema", get(handlers::spacetimedb::get_schema))
+        .route("/api/v1/spacetimedb/tables/{name}/rows", get(handlers::spacetimedb::get_table_rows))
+        .route("/api/v1/spacetimedb/sql", post(handlers::spacetimedb::execute_sql))
+        .route("/api/v1/spacetimedb/reducers/{name}", post(handlers::spacetimedb::call_reducer))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             rate_limit::rate_limit_middleware,
@@ -121,7 +129,9 @@ pub fn build_router(state: Arc<ApiState>, enable_webui: bool) -> Router {
     // (auth verified via ?token= query param inside each handler)
     let sse_routes = Router::new()
         .route("/api/v1/events", get(sse::handlers::event_stream))
-        .route("/api/v1/logs", get(sse::handlers::log_stream));
+        .route("/api/v1/logs", get(sse::handlers::log_stream))
+        .route("/api/v1/spacetimedb/events", get(sse::handlers::spacetimedb_event_stream))
+        .route("/api/v1/spacetimedb/logs", get(sse::handlers::spacetimedb_log_stream));
 
     let router = Router::new()
         .merge(public_routes)

@@ -12,6 +12,7 @@ workspace = true
 [dependencies]
 infrarust-api = { workspace = true }
 infrarust_protocol = { workspace = true }
+infrarust-spacetimedb = { path = "../../crates/infrarust-spacetimedb", optional = true }
 
 axum = { workspace = true }
 tower = { workspace = true }
@@ -30,6 +31,11 @@ uuid = { workspace = true }
 time = { workspace = true }
 rust-embed = { workspace = true }
 mime_guess = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+
+[features]
+default = ["spacetimedb"]
+spacetimedb = ["dep:infrarust-spacetimedb"]
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "test-util"] }

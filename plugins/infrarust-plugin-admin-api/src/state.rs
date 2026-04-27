@@ -47,6 +47,9 @@ pub struct ApiState {
     pub health_checker: Arc<HealthChecker>,
     /// Ring buffer of recent activity events (last 100).
     pub recent_events: Arc<Mutex<VecDeque<RecentEvent>>>,
+    /// Managed SpacetimeDB runtime for lifecycle and admin access.
+    #[cfg(feature = "spacetimedb")]
+    pub spacetimedb_runtime: Option<Arc<dyn infrarust_api::services::spacetimedb::ManagedSpacetimeRuntime>>,
 }
 
 /// A summarized event for the activity feed.
